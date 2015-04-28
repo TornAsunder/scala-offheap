@@ -9,8 +9,6 @@ class Annotations(val c: whitebox.Context) extends Common {
   import c.universe.definitions._
   import Flag._
 
-  val Ref = if (checked) tq"$RefClass" else tq"$AddrTpe"
-
   def performLayout(C: Tree, fields: List[SyntacticField]): Tree = {
     val tuples = fields.map { f =>
       q"(${f.name.toString}, $PredefModule.classOf[${f.tpt}])"
@@ -193,18 +191,17 @@ class Annotations(val c: whitebox.Context) extends Common {
       parents.zip(parentExtractors).map { case (p, u) =>
         q"new $ParentExtractorClass($PredefModule.classOf[$p], $termName.${u.name})"
       }
-    val uncheckedAnnot = if (checked) Nil else List(q"new $UncheckedClass")
     val layoutAnnot = performLayout(tq"$name", fields)
     val mods = Modifiers(
       (rawMods.flags.asInstanceOf[Long] & Flag.FINAL.asInstanceOf[Long]).asInstanceOf[FlagSet],
       rawMods.privateWithin,
       q"new $DataClass" :: layoutAnnot ::
-      extractorAnnots ::: uncheckedAnnot ::: rawMods.annotations
+      extractorAnnots ::: rawMods.annotations
     )
 
     q"""
       $mods class $name private (
-        private val $ref: $Ref
+        private val $ref: $RefClass
       ) extends $AnyValClass with ..$traits { $rawSelf =>
         import scala.language.experimental.{macros => $canUseMacros}
 
@@ -232,9 +229,9 @@ class Annotations(val c: whitebox.Context) extends Common {
                      with ..$companionParents { $companionSelf =>
         import scala.language.experimental.{macros => $canUseMacros}
 
-        val empty: $name                  = null.asInstanceOf[$name]
-        def fromRef($ref: $Ref): $name    = new $name($ref)
-        def toRef($instance: $name): $Ref = $instance.$ref
+        val empty: $name                       = null.asInstanceOf[$name]
+        def fromRef($ref: $RefClass): $name    = new $name($ref)
+        def toRef($instance: $name): $RefClass = $instance.$ref
         def apply(..$args)(implicit $memory: $MemoryClass): $name =
           $MethodModule.allocator[$name]($memory, ..$argNames)
         def unapply(scrutinee: $AnyClass): $unapplyTpt =
@@ -352,14 +349,12 @@ class Annotations(val c: whitebox.Context) extends Common {
       if (parentAnnots.nonEmpty) rangeAnnotOpt.get
       else q"new $ClassTagRangeClass(${const(0)}, ${const(count)})"
     val q"$_: $tagTpt" = const(0)
-    val uncheckedAnnot = if (checked) Nil else List(q"new $UncheckedClass")
     val layoutAnnot    = performLayout(tq"$name", List(new SyntacticField(q"val $tag: $tagTpt")))
-    val annots         = q"new $EnumClass" :: rangeAnnot :: layoutAnnot ::
-                         (uncheckedAnnot ::: parentAnnots)
+    val annots         = q"new $EnumClass" :: rangeAnnot :: layoutAnnot :: parentAnnots
 
     q"""
       @..$annots final class $name private(
-        private val $ref: $Ref
+        private val $ref: $RefClass
       ) extends $AnyValClass {
         import scala.language.experimental.{macros => $canUseMacros}
         def $tag: $tagTpt         = $MethodModule.accessor[$name, $tagTpt]($ref, ${tag.toString})
@@ -368,10 +363,10 @@ class Annotations(val c: whitebox.Context) extends Common {
       }
       $moduleMods object $termName extends { ..$rawEarly } with ..$rawParents { $rawSelf =>
         import scala.language.experimental.{macros => $canUseMacros}
-        val empty: $name                     = null.asInstanceOf[$name]
-        def fromRef($ref: $Ref): $name       = new $name($ref)
-        def toRef($instance: $name): $Ref    = $instance.$ref
-        implicit def $coerce[T](t: T): $name =
+        val empty: $name                       = null.asInstanceOf[$name]
+        def fromRef($ref: $RefClass): $name    = new $name($ref)
+        def toRef($instance: $name): $RefClass = $instance.$ref
+        implicit def $coerce[T](t: T): $name   =
           macro $internal.macros.WhiteboxMethod.coerce[$name, T]
         ..$stats
       }

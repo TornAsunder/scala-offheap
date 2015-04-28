@@ -72,7 +72,6 @@ trait Common extends Definitions {
   object ExtractParentExtractor    extends ExtractAnnotation(ParentExtractorClass)
   object ExtractPrimaryExtractor   extends ExtractAnnotation(PrimaryExtractorClass)
   object ExtractUniversalExtractor extends ExtractAnnotation(UniversalExtractorClass)
-  object ExtractUnchecked          extends ExtractAnnotation(UncheckedClass)
 
   final case class IsClass(value: Boolean)
   object ClassOf {
@@ -172,8 +171,7 @@ trait Common extends Definitions {
       q"$ArrayModule.fromRef[$tpe]($memory.getRef($addr))"
     case ClassOf(_, _, _) =>
       val companion = tpe.typeSymbol.companion
-      val getRef = if (checked) TermName("getRef") else TermName("getLong")
-      q"$companion.fromRef($memory.$getRef($addr))"
+      q"$companion.fromRef($memory.getRef($addr))"
   }
 
   def write(addr: Tree, tpe: Type, value: Tree, memory: Tree): Tree = tpe match {
@@ -190,8 +188,7 @@ trait Common extends Definitions {
       q"$memory.putRef($addr, $ArrayModule.toRef($value))"
     case ClassOf(_, _, _) =>
       val companion = tpe.typeSymbol.companion
-      val putRef = if (checked) TermName("putRef") else TermName("putLong")
-      q"$memory.$putRef($addr, $companion.toRef($value))"
+      q"$memory.putRef($addr, $companion.toRef($value))"
   }
 
 

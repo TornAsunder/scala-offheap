@@ -16,12 +16,11 @@ trait Definitions {
 
   val AddrTpe = LongClass.toType
   val SizeTpe = LongClass.toType
-  val checked = !System.getProperties.containsKey("offheap.unchecked")
 
-  def addr(ref: Tree)    = if (checked) q"$ref.addr"    else ref
-  def memory(ref: Tree)  = if (checked) q"$ref.memory"  else q"$internal.Unsafer.unsafe"
-  def isNull(ref: Tree)  = if (checked) q"$ref == null" else q"$ref == 0L"
-  def notNull(ref: Tree) = if (checked) q"$ref != null" else q"$ref != 0L"
+  def addr(ref: Tree)    = q"$ref.addr"
+  def memory(ref: Tree)  = q"$ref.memory"
+  def isNull(ref: Tree)  = q"$ref == null"
+  def notNull(ref: Tree) = q"$ref != null"
 
   val StringBuilderClass            = staticClass("scala.collection.mutable.StringBuilder")
   val NullPointerExceptionClass     = staticClass("java.lang.NullPointerException")
@@ -41,7 +40,6 @@ trait Definitions {
   val PrimaryExtractorClass   = staticClass("offheap.internal.PrimaryExtractor")
   val ParentExtractorClass    = staticClass("offheap.internal.ParentExractor")
   val UniversalExtractorClass = staticClass("offheap.internal.UniversalExtractor")
-  val UncheckedClass          = staticClass("offheap.internal.Unchecked")
 
   val PoolModule   = staticModule(s"$prefix.Pool")
   val ArrayModule  = staticModule(s"$prefix.Array")
